@@ -22,7 +22,19 @@ Serve `docs/superpowers/{specs,plans}/*.md` as styled HTML on a Tailscale-reacha
 
 Requires `uv` (or `python3` + `pip install markdown pygments`).
 
-See [`plugins/brainstorm-preview/skills/brainstorm-preview/SKILL.md`](plugins/brainstorm-preview/skills/brainstorm-preview/SKILL.md) for details.
+See [`plugins/brainstorm-preview/skills/brainstorm-preview/SKILL.md`](plugins/brainstorm-preview/skills/brainstorm-preview/SKILL.md).
+
+### pr-via
+
+Open a GitHub pull request by dispatching the repo's `create-pr.yml` workflow via `gh` CLI. Synthesizes a Conventional-Commits title + `Summary` / `Test plan` body from the commit range so the PR has real content instead of the workflow's auto-generated default.
+
+Requires a `.github/workflows/create-pr.yml` `workflow_dispatch` in the target repo. See [`plugins/pr-via/skills/pr-via/SKILL.md`](plugins/pr-via/skills/pr-via/SKILL.md).
+
+### rabbit-pr
+
+Address CodeRabbit (or similar bot) review comments on a GitHub PR end-to-end: fetch inline + review-body comments, skip resolved threads + already-replied items, build a checklist, verify each finding against current code, apply fixes, push, batch-reply, and resolve threads via GraphQL.
+
+Requires `gh` CLI. See [`plugins/rabbit-pr/skills/rabbit-pr/SKILL.md`](plugins/rabbit-pr/skills/rabbit-pr/SKILL.md).
 
 ## License
 

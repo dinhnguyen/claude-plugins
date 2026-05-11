@@ -18,7 +18,31 @@
         "name": "Dinh Nguyen",
         "email": "dinhnguyenngoc@hotmail.com"
       },
-      "homepage": "https://github.com/dinhnguyen/claude-plugins"
+      "homepage": "https://github.com/dinhnguyen/claude-plugins/tree/main/plugins/brainstorm-preview"
+    },
+    {
+      "name": "pr-via",
+      "description": "Open a GitHub pull request by dispatching the repo's create-pr.yml workflow via gh CLI. Synthesizes a Conventional-Commits title + Summary/Test-plan body from the commit range so the PR has real content. Requires a .github/workflows/create-pr.yml workflow_dispatch in the target repo.",
+      "version": "1.0.0",
+      "source": "./plugins/pr-via",
+      "category": "workflow",
+      "author": {
+        "name": "Dinh Nguyen",
+        "email": "dinhnguyenngoc@hotmail.com"
+      },
+      "homepage": "https://github.com/dinhnguyen/claude-plugins/tree/main/plugins/pr-via"
+    },
+    {
+      "name": "rabbit-pr",
+      "description": "Address CodeRabbit (or similar bot) review comments on a GitHub PR end-to-end: fetch inline + review-body comments, skip resolved threads, build a checklist, verify each finding against current code, apply fixes, push, batch-reply, and resolve threads.",
+      "version": "1.0.0",
+      "source": "./plugins/rabbit-pr",
+      "category": "workflow",
+      "author": {
+        "name": "Dinh Nguyen",
+        "email": "dinhnguyenngoc@hotmail.com"
+      },
+      "homepage": "https://github.com/dinhnguyen/claude-plugins/tree/main/plugins/rabbit-pr"
     }
   ]
 }

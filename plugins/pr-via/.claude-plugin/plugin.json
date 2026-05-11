@@ -1,0 +1,11 @@
+{
+  "name": "pr-via",
+  "description": "Open a GitHub pull request by dispatching the repo's `create-pr.yml` workflow via `gh` CLI. Auto-detects current branch + base = main; synthesizes Conventional-Commits title + Summary/Test-plan body from the commit range so the PR has real content instead of the workflow's auto-generated default. Requires a `.github/workflows/create-pr.yml` workflow_dispatch in the target repo.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Dinh Nguyen",
+    "email": "dinhnguyenngoc@hotmail.com"
+  },
+  "homepage": "https://github.com/dinhnguyen/claude-plugins/tree/main/plugins/pr-via",
+  "keywords": ["github", "pr", "workflow", "gh-cli", "release-flow"]
+}

@@ -1,0 +1,11 @@
+{
+  "name": "rabbit-pr",
+  "description": "Address CodeRabbit (or similar bot) review comments on a GitHub PR end-to-end: fetch inline + review-body comments, skip resolved threads + already-replied items, classify severity, build a checklist, verify each comment against current code, apply fixes, push, post per-comment replies, and resolve threads via GraphQL.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Dinh Nguyen",
+    "email": "dinhnguyenngoc@hotmail.com"
+  },
+  "homepage": "https://github.com/dinhnguyen/claude-plugins/tree/main/plugins/rabbit-pr",
+  "keywords": ["github", "code-review", "coderabbit", "pr", "gh-cli"]
+}
