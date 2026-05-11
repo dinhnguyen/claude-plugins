@@ -1,0 +1,11 @@
+{
+  "name": "brainstorm-preview",
+  "description": "Preview docs/superpowers/{specs,plans}/*.md as styled HTML on a Tailscale-reachable HTTP server. Auto-invokes after superpowers:brainstorming / superpowers:writing-plans so the freshly-written doc gets a one-click review URL on local + tailnet.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Dinh Nguyen",
+    "email": "dinhnguyenngoc@hotmail.com"
+  },
+  "homepage": "https://github.com/dinhnguyen/claude-plugins/tree/main/plugins/brainstorm-preview",
+  "keywords": ["docs", "markdown", "preview", "tailscale", "brainstorming", "superpowers"]
+}

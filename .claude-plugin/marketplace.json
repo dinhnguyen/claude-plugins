@@ -1,0 +1,24 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "dinhnn-claude-plugins",
+  "description": "Personal Claude Code plugin marketplace by dinhnn — workflow helpers and dev utilities.",
+  "owner": {
+    "name": "Dinh Nguyen",
+    "email": "dinhnguyenngoc@hotmail.com",
+    "url": "https://github.com/dinhnguyen"
+  },
+  "plugins": [
+    {
+      "name": "brainstorm-preview",
+      "description": "Serve docs/superpowers/{specs,plans}/*.md as styled HTML on a Tailscale-reachable HTTP server so spec/plan drafts can be reviewed from any device. Renders Markdown plus client-side Mermaid + Graphviz diagrams. Auto-invokes right after superpowers:brainstorming or superpowers:writing-plans writes a doc, highlighting the freshly-written file.",
+      "version": "1.0.0",
+      "source": "./plugins/brainstorm-preview",
+      "category": "workflow",
+      "author": {
+        "name": "Dinh Nguyen",
+        "email": "dinhnguyenngoc@hotmail.com"
+      },
+      "homepage": "https://github.com/dinhnguyen/claude-plugins"
+    }
+  ]
+}
