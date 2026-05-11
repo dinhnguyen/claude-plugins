@@ -20,6 +20,56 @@ Do NOT use this skill when the user wants to:
 - Publish docs as a static site or to a public host.
 - Edit docs (just open them in the editor).
 
+## Auto-trigger via PostToolUse hook (recommended)
+
+The skill description hints at auto-invocation after brainstorming/writing-plans
+writes a spec or plan. In practice that hint loses to the brainstorming
+workflow's "do not invoke any other skill" rule, so Claude rarely fires the
+skill on its own. Make it deterministic with a `PostToolUse` hook instead.
+
+`~/.claude/hooks/brainstorm-preview-trigger.sh`:
+
+```bash
+#!/usr/bin/env bash
+set -e
+INPUT=$(cat)
+TOOL=$(printf '%s' "$INPUT" | jq -r '.tool_name // empty')
+FP=$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // empty')
+
+case "$TOOL" in Write|Edit|MultiEdit) ;; *) exit 0 ;; esac
+case "$FP" in
+  */docs/superpowers/specs/*.md|*/docs/superpowers/plans/*.md) ;;
+  *) exit 0 ;;
+esac
+
+ROOT="${FP%%/docs/superpowers/*}"
+[ -d "$ROOT/docs" ] || exit 0
+PORT=8765
+lsof -ti :"$PORT" >/dev/null 2>&1 && exit 0
+
+nohup uv run \
+  ~/.claude/skills/brainstorm-preview/scripts/serve.py \
+  --docs-root "$ROOT" --port "$PORT" --latest \
+  >/tmp/brainstorm-preview.log 2>&1 &
+disown
+```
+
+`~/.claude/settings.json` (add a second entry alongside the existing notifier):
+
+```json
+"PostToolUse": [
+  { "matcher": "Write|Edit|MultiEdit",
+    "hooks": [{ "type": "command",
+                "command": "/Users/<you>/.claude/hooks/brainstorm-preview-trigger.sh" }] }
+]
+```
+
+After the hook spawns the server, retrieve the URLs from
+`/tmp/brainstorm-preview.log` (use `tail` or `BashOutput` if Claude is still in
+the session) and relay them as clickable markdown links. The hook deliberately
+does nothing when the port is already bound — preserves URLs from the original
+startup output and avoids restart churn.
+
 ## Workflow
 
 1. Confirm the project root contains `docs/` (preferably with `docs/superpowers/specs/` and/or `docs/superpowers/plans/`). If not, tell the user and stop.
@@ -30,7 +80,7 @@ Do NOT use this skill when the user wants to:
 3. Start the server in the background from the project root so the conversation stays interactive:
 
    ```bash
-   uv run ${CLAUDE_PLUGIN_ROOT}/skills/brainstorm-preview/scripts/serve.py \
+   uv run /Users/dinhnguyen/.claude/skills/brainstorm-preview/scripts/serve.py \
      --docs-root "$PWD" --port 8765 [--latest | --open <docs/relpath>]
    ```
 
@@ -95,7 +145,7 @@ If `uv` is not on PATH, run with the system Python after installing the two deps
 
 ```bash
 pip install markdown pygments
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/brainstorm-preview/scripts/serve.py --docs-root "$PWD"
+python3 /Users/dinhnguyen/.claude/skills/brainstorm-preview/scripts/serve.py --docs-root "$PWD"
 ```
 
 ## Troubleshooting
