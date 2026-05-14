@@ -44,14 +44,32 @@ esac
 
 ROOT="${FP%%/docs/superpowers/*}"
 [ -d "$ROOT/docs" ] || exit 0
-PORT=8765
-lsof -ti :"$PORT" >/dev/null 2>&1 && exit 0
+
+# Per-project state so multiple simultaneous projects each get their own port
+ROOT_HASH=$(printf '%s' "$ROOT" | md5)
+STATE_FILE="/tmp/brainstorm-preview-${ROOT_HASH}.state"
+LOG="/tmp/brainstorm-preview-${ROOT_HASH}.log"
+
+# If server for THIS project root is already running, do nothing
+if [ -f "$STATE_FILE" ]; then
+  source "$STATE_FILE"
+  if [ -n "${PREVIEW_PID:-}" ] && kill -0 "$PREVIEW_PID" 2>/dev/null; then
+    exit 0
+  fi
+fi
+
+# Find a free port
+PORT=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); p=s.getsockname()[1]; s.close(); print(p)")
 
 nohup uv run \
   ~/.claude/skills/brainstorm-preview/scripts/serve.py \
   --docs-root "$ROOT" --port "$PORT" --latest \
-  >/tmp/brainstorm-preview.log 2>&1 &
+  >"$LOG" 2>&1 &
+PREVIEW_PID=$!
 disown
+
+printf 'PREVIEW_PID=%s\nPREVIEW_PORT=%s\nPREVIEW_ROOT=%s\n' \
+  "$PREVIEW_PID" "$PORT" "$ROOT" > "$STATE_FILE"
 ```
 
 `~/.claude/settings.json` (add a second entry alongside the existing notifier):
@@ -64,11 +82,23 @@ disown
 ]
 ```
 
-After the hook spawns the server, retrieve the URLs from
-`/tmp/brainstorm-preview.log` (use `tail` or `BashOutput` if Claude is still in
-the session) and relay them as clickable markdown links. The hook deliberately
-does nothing when the port is already bound — preserves URLs from the original
-startup output and avoids restart churn.
+After the hook spawns the server, retrieve the URLs from the per-project log.
+The log path is `/tmp/brainstorm-preview-<HASH>.log` where `<HASH>` is
+`$(printf '%s' "$ROOT" | md5)`. To find it, run:
+
+```bash
+ROOT_HASH=$(printf '%s' /path/to/project | md5)
+tail -20 "/tmp/brainstorm-preview-${ROOT_HASH}.log"
+```
+
+Or list all active state files to find ports for all running projects:
+
+```bash
+cat /tmp/brainstorm-preview-*.state 2>/dev/null
+```
+
+Relay the URLs as clickable markdown links. The hook does nothing when the
+server for that project root is already running — avoids restart churn.
 
 ## Workflow
 
@@ -80,11 +110,12 @@ startup output and avoids restart churn.
 3. Start the server in the background from the project root so the conversation stays interactive:
 
    ```bash
+   PORT=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); p=s.getsockname()[1]; s.close(); print(p)")
    uv run /Users/dinhnguyen/.claude/skills/brainstorm-preview/scripts/serve.py \
-     --docs-root "$PWD" --port 8765 [--latest | --open <docs/relpath>]
+     --docs-root "$PWD" --port "$PORT" [--latest | --open <docs/relpath>]
    ```
 
-   Use Bash with `run_in_background: true` so the server doesn't block. The script prints local, LAN, Tailscale, and (when `--latest` / `--open` is set) `latest:` URLs to stdout on startup.
+   Use Bash with `run_in_background: true` so the server doesn't block. The script prints local, LAN, Tailscale, and (when `--latest` / `--open` is set) `latest:` URLs to stdout on startup. Using a dynamically allocated port avoids collisions when multiple project servers are running simultaneously.
 4. Read the first ~20 lines of the background process's output (via BashOutput on the started shell) and relay the printed URLs to the user as **clickable markdown links** (`[url](url)`). Do not wrap URLs in inline code (`` `url` ``) or fenced code blocks — those break the click target in most renderers. Include the Tailscale URL if it appears. Do not invent or rewrite URLs — only show what the script actually printed.
 5. If the user later asks to stop the preview, KillShell the background process.
 
