@@ -1,0 +1,11 @@
+{
+  "name": "darkfin-slides",
+  "description": "Dark fintech/blockchain PowerPoint deck builder. 29 slate-palette HTML slide templates (title, problem, KPI, timelines, pricing, roadmap, scoring tiers, etc.) converted to .pptx via Playwright + PptxGenJS. Bundles 39 cyan icon PNGs, 12 gradient step-number PNGs, and pre-rendered glow backgrounds. Default tone is slate (Tailwind-aligned); custom palettes supported via gen-assets/icons/numbers + sed hex swap.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Dinh Nguyen",
+    "email": "dinhnguyenngoc@hotmail.com"
+  },
+  "homepage": "https://github.com/dinhnguyen/claude-plugins/tree/main/plugins/darkfin-slides",
+  "keywords": ["slides", "pptx", "powerpoint", "dark-theme", "fintech", "blockchain", "pitch-deck", "presentation", "html2pptx", "playwright"]
+}

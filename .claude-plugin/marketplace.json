@@ -43,6 +43,18 @@
         "email": "dinhnguyenngoc@hotmail.com"
       },
       "homepage": "https://github.com/dinhnguyen/claude-plugins/tree/main/plugins/rabbit-pr"
+    },
+    {
+      "name": "darkfin-slides",
+      "description": "Dark fintech/blockchain PowerPoint deck builder. 29 slate-palette HTML slide templates (title, problem, KPI, horizontal + 3 vertical timeline variants, pricing, roadmap, scoring tiers, etc.) converted to .pptx via Playwright + PptxGenJS. Bundles 39 cyan icon PNGs (FontAwesome via react-icons), 12 gradient step-number PNGs, and pre-rendered glow backgrounds. Default tone is slate (Tailwind-aligned); custom palettes supported via gen-assets/icons/numbers scripts + sed hex swap in workdir slides.",
+      "version": "1.0.0",
+      "source": "./plugins/darkfin-slides",
+      "category": "design",
+      "author": {
+        "name": "Dinh Nguyen",
+        "email": "dinhnguyenngoc@hotmail.com"
+      },
+      "homepage": "https://github.com/dinhnguyen/claude-plugins/tree/main/plugins/darkfin-slides"
     }
   ]
 }
