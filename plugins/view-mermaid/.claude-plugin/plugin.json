@@ -1,0 +1,11 @@
+{
+  "name": "view-mermaid",
+  "description": "View Mermaid diagrams from the current conversation in a browser. Writes each chat mermaid block to a .mmd file and serves them rendered (bundled mermaid.js, fully offline) on a Tailscale-reachable HTTP server, with a diagram list, per-diagram fullscreen with zoom/pan, copyable source, and a light/dark toggle. Trigger with /view-mermaid.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Dinh Nguyen",
+    "email": "dinhnguyenngoc@hotmail.com"
+  },
+  "homepage": "https://github.com/dinhnguyen/claude-plugins/tree/main/plugins/view-mermaid",
+  "keywords": ["mermaid", "diagram", "preview", "browser", "tailscale", "offline"]
+}

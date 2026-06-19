@@ -37,6 +37,8 @@ import socket
 import socketserver
 import subprocess
 import sys
+import threading
+import time
 from datetime import datetime
 from functools import partial
 from pathlib import Path
@@ -137,6 +139,15 @@ PAGE_FOOT = """
     try { d3.select("#graphviz-" + i).graphviz({ fit: true }).renderDot(src); }
     catch (e) { wrap.textContent = "[graphviz render failed] " + e.message; }
   });
+</script>
+<script>
+  // Heartbeat: lets the server auto-stop ~180s after the last tab closes.
+  (function () {
+    const ping = () => { fetch("/heartbeat", { cache: "no-store" }).catch(() => {}); };
+    ping();
+    setInterval(ping, 30000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) ping(); });
+  })();
 </script>
 </body></html>
 """
@@ -255,9 +266,10 @@ def render_file(root: Path, rel: Path) -> tuple[int, str]:
 class Handler(http.server.BaseHTTPRequestHandler):
     server_version = "brainstorm-preview/1.0"
 
-    def __init__(self, *args, root: Path, highlight: Path | None = None, **kwargs):
+    def __init__(self, *args, root: Path, highlight: Path | None = None, activity=None, **kwargs):
         self.root = root
         self.highlight = highlight
+        self.activity = activity if activity is not None else [0.0]
         super().__init__(*args, **kwargs)
 
     def _send(self, code: int, body: str, ctype: str = "text/html; charset=utf-8") -> None:
@@ -271,6 +283,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         path = unquote(self.path.split("?", 1)[0])
+        self.activity[0] = time.monotonic()
+        if path == "/heartbeat":
+            return self._send(200, "ok\n", "text/plain; charset=utf-8")
         if path == "/" or path == "":
             return self._send(200, render_index(self.root, self.highlight))
         if path.startswith("/view/"):
@@ -329,6 +344,14 @@ def main() -> int:
         default=None,
         help="Relpath under <docs-root>/docs to highlight and print on startup.",
     )
+    p.add_argument(
+        "--idle-timeout",
+        type=int,
+        default=180,
+        help="Auto-shutdown after N seconds with no request / heartbeat (0 = never).",
+    )
+    p.add_argument("--state-file", default=None, help="Remove this file on shutdown.")
+    p.add_argument("--log-file", default=None, help="Remove this file on shutdown.")
     args = p.parse_args()
 
     root = Path(args.docs_root).resolve()
@@ -352,7 +375,8 @@ def main() -> int:
         if highlight is None:
             sys.stderr.write("warn: --latest passed but no specs/plans found.\n")
 
-    handler = partial(Handler, root=root, highlight=highlight)
+    activity = [time.monotonic()]
+    handler = partial(Handler, root=root, highlight=highlight, activity=activity)
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer((args.bind, args.port), handler) as httpd:
         print(f"brainstorm-preview serving from {root}", flush=True)
@@ -371,11 +395,31 @@ def main() -> int:
             print(f"  latest:    http://localhost:{args.port}{path_seg}", flush=True)
             if ts:
                 print(f"             {ts.rstrip('/')}{path_seg}", flush=True)
+        if args.idle_timeout > 0:
+            print(f"  (auto-stop after {args.idle_timeout}s with no open tab)", flush=True)
+
+            def monitor() -> None:
+                interval = max(1, min(15, args.idle_timeout))
+                while True:
+                    time.sleep(interval)
+                    if time.monotonic() - activity[0] > args.idle_timeout:
+                        httpd.shutdown()
+                        return
+
+            threading.Thread(target=monitor, daemon=True).start()
         print("Press Ctrl+C to stop.", flush=True)
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
             print("\nStopped.", flush=True)
+        else:
+            print("Idle - shutting down.", flush=True)
+    for f in (args.state_file, args.log_file):
+        if f:
+            try:
+                Path(f).unlink()
+            except OSError:
+                pass
     return 0
 
 

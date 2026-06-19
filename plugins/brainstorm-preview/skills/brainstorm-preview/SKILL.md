@@ -64,6 +64,7 @@ PORT=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); p=s.getsock
 nohup uv run \
   ~/.claude/skills/brainstorm-preview/scripts/serve.py \
   --docs-root "$ROOT" --port "$PORT" --latest \
+  --idle-timeout 180 --state-file "$STATE_FILE" --log-file "$LOG" \
   >"$LOG" 2>&1 &
 PREVIEW_PID=$!
 disown
@@ -112,12 +113,12 @@ server for that project root is already running — avoids restart churn.
    ```bash
    PORT=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); p=s.getsockname()[1]; s.close(); print(p)")
    uv run /Users/dinhnguyen/.claude/skills/brainstorm-preview/scripts/serve.py \
-     --docs-root "$PWD" --port "$PORT" [--latest | --open <docs/relpath>]
+     --docs-root "$PWD" --port "$PORT" --idle-timeout 180 [--latest | --open <docs/relpath>]
    ```
 
    Use Bash with `run_in_background: true` so the server doesn't block. The script prints local, LAN, Tailscale, and (when `--latest` / `--open` is set) `latest:` URLs to stdout on startup. Using a dynamically allocated port avoids collisions when multiple project servers are running simultaneously.
 4. Read the first ~20 lines of the background process's output (via BashOutput on the started shell) and relay the printed URLs to the user as **clickable markdown links** (`[url](url)`). Do not wrap URLs in inline code (`` `url` ``) or fenced code blocks — those break the click target in most renderers. Include the Tailscale URL if it appears. Do not invent or rewrite URLs — only show what the script actually printed.
-5. If the user later asks to stop the preview, KillShell the background process.
+5. The server **auto-stops ~180s after the last open tab closes** (the page heartbeats every 30s); pass `--state-file`/`--log-file` so it removes its own state/log on exit. If the user wants it stopped immediately, KillShell the background process.
 
 ### Auto-trigger handoff
 
