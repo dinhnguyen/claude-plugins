@@ -1,0 +1,213 @@
+name: Create Pull Request
+
+on:
+  workflow_dispatch:
+    inputs:
+      head_branch:
+        description: "Nhánh nguồn, ví dụ: feature/login"
+        required: true
+        type: string
+      base_branch:
+        description: "Nhánh đích"
+        required: true
+        default: "main"
+        type: string
+      pr_title:
+        description: "Tiêu đề PR. Để trống sẽ tự sinh"
+        required: false
+        default: ""
+        type: string
+      pr_body:
+        description: "Nội dung PR"
+        required: false
+        default: ""
+        type: string
+      draft:
+        description: "Tạo dưới dạng draft"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate inputs
+        shell: bash
+        env:
+          HEAD: ${{ inputs.head_branch }}
+          BASE: ${{ inputs.base_branch }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$HEAD" ]; then
+            echo "head_branch is required"
+            exit 1
+          fi
+
+          if [ -z "$BASE" ]; then
+            echo "base_branch is required"
+            exit 1
+          fi
+
+          if [ "$HEAD" = "$BASE" ]; then
+            echo "head_branch and base_branch cannot be the same"
+            exit 1
+          fi
+
+      - name: Check branches exist in remote
+        shell: bash
+        env:
+          GH_PAT: ${{ github.token }}
+          HEAD: ${{ inputs.head_branch }}
+          BASE: ${{ inputs.base_branch }}
+        run: |
+          set -euo pipefail
+
+          REPO_URL="https://x-access-token:${GH_PAT}@github.com/${GITHUB_REPOSITORY}.git"
+
+          if ! git ls-remote --exit-code --heads "$REPO_URL" "$HEAD" >/dev/null 2>&1; then
+            echo "Source branch does not exist: $HEAD"
+            exit 1
+          fi
+
+          if ! git ls-remote --exit-code --heads "$REPO_URL" "$BASE" >/dev/null 2>&1; then
+            echo "Base branch does not exist: $BASE"
+            exit 1
+          fi
+
+      - name: Check whether an open PR already exists
+        id: existing_pr
+        uses: actions/github-script@v8
+        env:
+          HEAD: ${{ inputs.head_branch }}
+          BASE: ${{ inputs.base_branch }}
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const [owner, repo] = process.env.GITHUB_REPOSITORY.split("/");
+            const head = `${owner}:${process.env.HEAD}`;
+            const base = process.env.BASE;
+
+            const { data } = await github.rest.pulls.list({
+              owner,
+              repo,
+              state: "open",
+              head,
+              base
+            });
+
+            if (data.length > 0) {
+              core.setOutput("exists", "true");
+              core.setOutput("number", String(data[0].number));
+              core.setOutput("url", data[0].html_url);
+            } else {
+              core.setOutput("exists", "false");
+            }
+
+      - name: Stop if PR already exists
+        if: steps.existing_pr.outputs.exists == 'true'
+        shell: bash
+        run: |
+          echo "An open PR already exists:"
+          echo "${{ steps.existing_pr.outputs.url }}"
+          exit 1
+
+      - name: Build PR title and body
+        id: pr_meta
+        shell: bash
+        env:
+          HEAD: ${{ inputs.head_branch }}
+          BASE: ${{ inputs.base_branch }}
+          RAW_TITLE: ${{ inputs.pr_title }}
+          RAW_BODY: ${{ inputs.pr_body }}
+        run: |
+          set -euo pipefail
+
+          generate_title() {
+            echo "[$1] @coderabbitai"
+          }
+
+          if [ -n "$RAW_TITLE" ]; then
+            TITLE="$RAW_TITLE"
+          else
+            TITLE="$(generate_title "$HEAD")"
+          fi
+
+          if [ -n "$RAW_BODY" ]; then
+            BODY="$RAW_BODY"
+          else
+            BODY="Auto-created by GitHub Actions.
+
+          - Source branch: \`${HEAD}\`
+          - Base branch: \`${BASE}\`
+          - Generated title: \`${TITLE}\`"
+          fi
+
+          {
+            echo "title<<EOF"
+            echo "$TITLE"
+            echo "EOF"
+            echo "body<<EOF"
+            echo "$BODY"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create pull request
+        id: create_pr
+        uses: actions/github-script@v8
+        env:
+          PR_TITLE: ${{ steps.pr_meta.outputs.title }}
+          PR_BODY: ${{ steps.pr_meta.outputs.body }}
+          HEAD: ${{ inputs.head_branch }}
+          BASE: ${{ inputs.base_branch }}
+          DRAFT: ${{ inputs.draft }}
+        with:
+          github-token: ${{ secrets.PR_CREATOR_TOKEN }}
+          script: |
+            const [owner, repo] = process.env.GITHUB_REPOSITORY.split("/");
+
+            const title = process.env.PR_TITLE;
+            const body = process.env.PR_BODY;
+            const head = process.env.HEAD;
+            const base = process.env.BASE;
+            const draft = process.env.DRAFT === "true";
+
+            const { data } = await github.rest.pulls.create({
+              owner,
+              repo,
+              title,
+              head,
+              base,
+              body,
+              draft,
+              maintainer_can_modify: true
+            });
+
+            await github.rest.issues.addAssignees({
+              owner,
+              repo,
+              issue_number: data.number,
+              assignees: [context.actor]
+            });
+
+            core.setOutput("number", String(data.number));
+            core.setOutput("url", data.html_url);
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo "## Pull request created"
+            echo
+            echo "- PR: ${{ steps.create_pr.outputs.url }}"
+            echo "- Number: #${{ steps.create_pr.outputs.number }}"
+            echo "- Title: ${{ steps.pr_meta.outputs.title }}"
+            echo "- Head: \`${{ inputs.head_branch }}\`"
+            echo "- Base: \`${{ inputs.base_branch }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

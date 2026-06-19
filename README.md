@@ -1,4 +1,4 @@
-# dinhnn Claude Code plugins
+# Định Nguyễn 's Claude Code plugins
 
 Personal Claude Code plugin marketplace.
 
@@ -35,6 +35,18 @@ Requires a `.github/workflows/create-pr.yml` `workflow_dispatch` in the target r
 Address CodeRabbit (or similar bot) review comments on a GitHub PR end-to-end: fetch inline + review-body comments, skip resolved threads + already-replied items, build a checklist, verify each finding against current code, apply fixes, push, batch-reply, and resolve threads via GraphQL.
 
 Requires `gh` CLI. See [`plugins/rabbit-pr/skills/rabbit-pr/SKILL.md`](plugins/rabbit-pr/skills/rabbit-pr/SKILL.md).
+
+### darkfin-slides
+
+Build dark fintech / blockchain PowerPoint decks from 29 slate-palette HTML slide templates (title, problem, KPI grids, pricing, roadmap, scoring tiers, horizontal + 3 vertical timeline variants, and more), converted to `.pptx` via Playwright + PptxGenJS. Bundles cyan icon PNGs, gradient step-number PNGs, and pre-rendered glow backgrounds. Default palette is slate; custom palettes via the bundled asset scripts.
+
+See [`plugins/darkfin-slides/skills/darkfin-slides/SKILL.md`](plugins/darkfin-slides/skills/darkfin-slides/SKILL.md).
+
+### view-mermaid
+
+View Mermaid diagrams from the current Claude conversation in a browser. Reads each Mermaid code block in the chat, writes it to a `.mmd` file, and serves them rendered on a Tailscale-reachable HTTP server with bundled `mermaid.js` (fully offline, no CDN). The page lists every diagram (newest first), renders the newest by default, and adds a light/dark toggle, copyable source, and per-diagram fullscreen with zoom + pan. The server auto-stops ~3 minutes after the last browser tab closes. Trigger with `/view-mermaid`.
+
+Requires `python3` (standard library only). See [`plugins/view-mermaid/skills/view-mermaid/SKILL.md`](plugins/view-mermaid/skills/view-mermaid/SKILL.md).
 
 ## License
 
