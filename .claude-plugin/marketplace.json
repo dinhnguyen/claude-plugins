@@ -59,7 +59,7 @@
     {
       "name": "view-mermaid",
       "description": "View Mermaid diagrams from the current conversation in a browser. Reads each chat ```mermaid block, writes it to a .mmd file, and serves them rendered on a Tailscale-reachable HTTP server with bundled mermaid.js (fully offline). The page lists all diagrams (newest first), renders the newest by default, has light/dark toggle, copyable source, and per-diagram fullscreen with zoom + pan. The server auto-stops ~3 min after the last tab closes. Trigger with /view-mermaid.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source": "./plugins/view-mermaid",
       "category": "workflow",
       "author": {

@@ -1,6 +1,6 @@
 ---
 name: view-mermaid
-description: View Mermaid diagrams from the current Claude conversation in a browser. The mermaid lives in the chat as a ```mermaid code block (text), not as a file - this skill reads each block out of the conversation, writes it to a .mmd file, and serves them rendered on a local HTTP server (bundled mermaid.js, fully offline) bound to 0.0.0.0, printing local + Tailscale URLs so the diagrams open on this machine or another device on the tailnet. The page lists every diagram (newest first), renders the newest by default, lets you pick any from the list, copy its source, and open one fullscreen in a new tab with zoom + pan. Use when the user types /view-mermaid, or asks to view / open / render a mermaid chart or diagram in the browser, see a diagram bigger or fullscreen, or says "xem mermaid", "mở sơ đồ trên trình duyệt", "xem biểu đồ to hơn", "render cái diagram này".
+description: View Mermaid diagrams from the current Claude conversation in a browser. The mermaid lives in the chat as a ```mermaid code block (text), not as a file - this skill reads each block out of the conversation, writes it to a .mmd file, and serves them rendered on a local HTTP server (bundled mermaid.js, fully offline) bound to 0.0.0.0, printing local + Tailscale URLs so the diagrams open on this machine or another device on the tailnet. The page lists every diagram (newest first), renders the newest by default, lets you pick any from the list, copy its source, and open one fullscreen in a new tab with zoom + pan. Use when the user types /view-mermaid, or asks to view / open / render a mermaid chart or diagram in the browser, see a diagram bigger or fullscreen, or says "xem mermaid", "mở sơ đồ trên trình duyệt", "xem biểu đồ to hơn", "render cái diagram này". After the first /view-mermaid in a conversation, also treat a later bare "xem" / "view" / "render nốt" as a request to append the newest diagram to the same running viewer and refresh - without retyping /view-mermaid.
 ---
 
 # View Mermaid
@@ -100,6 +100,44 @@ the Tailscale URL only if it appeared (it is absent when the tailnet is down).
   down ~180s after the last tab closes, then removes its own `$STATE`/`$LOG`. So
   orphaned servers do not pile up. (Reuse in step 3 still works while it is alive.)
 - **Stop now**: `source "$STATE" && kill "$VM_PID"` (or kill the background shell).
+
+## Re-view with just "xem" (after the first run)
+
+Once `/view-mermaid` has run in this conversation, remember `$WORK`. After that,
+treat a lightweight cue - "xem", "xem đi", "xem cái này", "view", "render nốt",
+"thêm vào" - as "append the newest diagram and refresh", WITHOUT re-running the
+full workflow and WITHOUT making the user retype `/view-mermaid`.
+
+1. Take the ```` ```mermaid ```` block(s) from your most recent message (the diagram
+   the user is reacting to) and append each as the next-numbered file in `$WORK`:
+
+   ```bash
+   WORK=/abs/path/remembered
+   N=$(printf '%02d' $(( $(ls "$WORK"/*.mmd 2>/dev/null | wc -l) + 1 )))
+   cat > "$WORK/$N-<slug>.mmd" <<'MMD'
+   <diagram source, fences stripped>
+   MMD
+   ```
+
+   Numbering by current file count keeps it append-only - no renaming existing
+   files, no duplicates. The new one gets the newest mtime, so it lands on top.
+
+2. Check the server is still alive (it may have hit the idle auto-stop):
+
+   ```bash
+   H=$(printf %s "$WORK" | md5); STATE="/tmp/view-mermaid-$H.state"
+   if [ -f "$STATE" ] && source "$STATE" && kill -0 "${VM_PID:-0}" 2>/dev/null; then
+     echo "alive on $VM_PORT - just refresh"
+   else
+     echo "server gone - restart via step 3 (URL will change)"
+   fi
+   ```
+
+3. If alive: tell the user to **refresh** (the new diagram is on top, already
+   selected). If it had auto-stopped: restart per step 3 and relay the new URL.
+
+This is the only "automatic" behavior - the very first view in a conversation
+still needs an explicit `/view-mermaid`.
 
 ## What the page provides
 
