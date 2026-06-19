@@ -43,19 +43,23 @@ session scratchpad, e.g. `<scratchpad>/mermaid-view/`. Create it with `mkdir -p`
 ### 2. Write each mermaid block to a `.mmd` file
 
 For each block, strip the ```` ```mermaid ```` / ```` ``` ```` fences and write only
-the diagram source. Number files in appearance order so the newest sorts to the top:
+the diagram source. Filenames must be ASCII slugs, so add a `%% title:` line (a
+mermaid comment, ignored when rendering) as the display label - **keep diacritics,
+non-ASCII, and original casing here** (e.g. Vietnamese with dấu):
 
 ```bash
 WORK=/abs/path/chosen/once            # the dir from step 1
-cat > "$WORK/03-component-architecture.mmd" <<'MMD'
+cat > "$WORK/03-luong-ekyc.mmd" <<'MMD'
 flowchart TD
+%% title: Luồng eKYC chi tiết
   A --> B
 MMD
 ```
 
-Use a zero-padded numeric prefix (`01-`, `02-`, ...) and a short slug. The prefix
-is stripped for display ("03-component-architecture" shows as "component
-architecture"). Write oldest first, newest last.
+Use a zero-padded numeric prefix (`01-`, `02-`, ...) and a short slug for the
+filename. The list shows the `%% title:` text; without it, it falls back to the
+de-slugged filename ("03-luong-ekyc" -> "luong ekyc", no diacritics). Write oldest
+first, newest last so the newest sorts to the top.
 
 ### 3. Start the server (or reuse the running one)
 
@@ -115,7 +119,9 @@ full workflow and WITHOUT making the user retype `/view-mermaid`.
    WORK=/abs/path/remembered
    N=$(printf '%02d' $(( $(ls "$WORK"/*.mmd 2>/dev/null | wc -l) + 1 )))
    cat > "$WORK/$N-<slug>.mmd" <<'MMD'
-   <diagram source, fences stripped>
+   <diagram-type>
+   %% title: <human title, keep diacritics>
+   <rest of diagram source, fences stripped>
    MMD
    ```
 
@@ -147,8 +153,9 @@ still needs an explicit `/view-mermaid`.
   Source tab shows a **Copy source** button.
 - **Fullscreen** (`/full?name=<file>`) opens one diagram in a new tab with wheel
   zoom (toward the cursor), drag to pan, `-` / `Fit` / `+` buttons, and `0` to fit.
-- **Light/dark toggle** (top-right button) overrides the OS theme and is remembered
-  in `localStorage`; it recolors both the page and the diagram. Renders fully offline.
+- **Light/dark switch** (sun/moon, top-right) overrides the OS theme and is
+  remembered in `localStorage`; recolors both page and diagram. The page title
+  (`--title`) sits in the nav bar. Renders fully offline.
 
 ## Script options
 

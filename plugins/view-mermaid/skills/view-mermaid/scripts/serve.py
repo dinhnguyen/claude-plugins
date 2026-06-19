@@ -47,12 +47,40 @@ ROOT_VARS = (
     ":root {" + LIGHT_VARS + "}\n"
     "@media (prefers-color-scheme: dark) { :root:not([data-theme]) {" + DARK_VARS + "} }\n"
     ':root[data-theme="dark"] {' + DARK_VARS + "}\n"
-)
+) + """
+.theme-switch { background: none; border: 0; padding: 0; cursor: pointer; line-height: 0; }
+.theme-switch .track { position: relative; display: block; width: 46px; height: 26px; border-radius: 999px; background: var(--muted); transition: background .2s; }
+.theme-switch.is-dark .track { background: var(--accent); }
+.theme-switch .knob { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; display: flex; align-items: center; justify-content: center; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+.theme-switch.is-dark .knob { left: 23px; }
+.theme-switch .ico { display: none; width: 12px; height: 12px; }
+.theme-switch .ico svg { width: 12px; height: 12px; display: block; }
+.theme-switch .sun { color: #f59e0b; }
+.theme-switch .moon { color: #475569; }
+.theme-switch:not(.is-dark) .sun { display: block; }
+.theme-switch.is-dark .moon { display: block; }
+"""
 
 # Applied inline in <head> so the chosen theme paints with no flash.
 NOFLASH = (
     '<script>try{var _t=localStorage.getItem("vm-theme");'
     'if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>'
+)
+
+# Light/dark toggle rendered as a sliding switch with a sun (light) / moon (dark)
+# icon in the knob. State is driven by an `is-dark` class set in vmInitTheme.
+SWITCH_HTML = (
+    '<button id="themebtn" class="theme-switch" type="button" role="switch"'
+    ' aria-label="Toggle light / dark" title="Light / dark">'
+    '<span class="track"><span class="knob">'
+    '<span class="ico sun"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+    ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+    '<circle cx="12" cy="12" r="4"/>'
+    '<path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2'
+    'M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>'
+    '<span class="ico moon"><svg viewBox="0 0 24 24" fill="currentColor">'
+    '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>'
+    '</span></span></button>'
 )
 
 # Shared theme helpers + toggle wiring. Both pages include this, then pass their
@@ -66,13 +94,18 @@ function vmIsDark() {
 function vmMermaidTheme() { return vmIsDark() ? "dark" : "default"; }
 function vmInitTheme(onChange) {
   const btn = document.getElementById("themebtn");
-  function label() { if (btn) btn.textContent = vmIsDark() ? "Dark" : "Light"; }
-  label();
+  function reflect() {
+    if (!btn) return;
+    const dark = vmIsDark();
+    btn.classList.toggle("is-dark", dark);
+    btn.setAttribute("aria-checked", dark ? "true" : "false");
+  }
+  reflect();
   if (btn) btn.addEventListener("click", () => {
     const next = vmIsDark() ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
     try { localStorage.setItem("vm-theme", next); } catch (e) {}
-    label();
+    reflect();
     if (onChange) onChange();
   });
 }
@@ -85,10 +118,8 @@ body { font: 16px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, 
 main { margin: 0; padding: 22px 28px 56px; }
 nav.top { padding: 12px 24px; border-bottom: 1px solid var(--border); display: flex; gap: 16px; align-items: center; }
 nav.top a { color: var(--fg); text-decoration: none; font-weight: 600; }
-nav.top .crumb { color: var(--muted); font-weight: 400; font-size: 0.9em; }
-.themebtn { margin-left: auto; background: var(--card); border: 1px solid var(--border); color: var(--fg); padding: 5px 13px; border-radius: 7px; cursor: pointer; font: inherit; font-size: 0.82em; min-width: 64px; }
-.themebtn:hover { background: var(--row-hover); }
-h1 { font-family: ui-serif, "New York", Georgia, serif; font-size: 1.7rem; margin: 0 0 4px; }
+nav.top .brand { font-size: 1.05rem; }
+nav.top .theme-switch { margin-left: auto; }
 .count { color: var(--muted); font-size: 0.85em; margin: 0 0 18px; }
 .wrap { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 22px; align-items: start; }
 ol.mmlist { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; position: sticky; top: 16px; }
@@ -128,10 +159,10 @@ html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); o
   border-bottom: 1px solid var(--border); z-index: 10; }
 .fbar .ttl { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fbar .hint { color: var(--muted); font-size: 0.82em; }
-.fbtns { display: flex; gap: 6px; align-items: center; }
-.fbtns button { background: var(--bg); border: 1px solid var(--border); color: var(--fg);
+.fbtns { display: flex; gap: 8px; align-items: center; }
+.fbtns button:not(.theme-switch) { background: var(--bg); border: 1px solid var(--border); color: var(--fg);
   width: 34px; height: 30px; border-radius: 7px; cursor: pointer; font: inherit; font-size: 0.95em; }
-.fbtns button:hover { background: var(--row-hover); }
+.fbtns button:not(.theme-switch):hover { background: var(--row-hover); }
 .fbtns .reset { width: auto; padding: 0 12px; }
 #viewport { position: absolute; top: 48px; left: 0; right: 0; bottom: 0; overflow: hidden;
   cursor: grab; touch-action: none; }
@@ -253,10 +284,26 @@ FULL_SCRIPT = """
   window.addEventListener("keydown", e => { if (e.key === "0") fit(); });
   window.addEventListener("resize", fit);
   let seq = 0;
+  function pinSvgSize() {
+    // mermaid renders with width:100% + max-width (useMaxWidth); inside an
+    // auto-width absolute stage that size is ambiguous. Pin the svg to its
+    // viewBox px so fit()/zoom math is exact.
+    const svg = stage.querySelector("svg");
+    if (!svg) return;
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    if (vb && vb.width && vb.height) {
+      svg.removeAttribute("width");
+      svg.removeAttribute("height");
+      svg.style.maxWidth = "none";
+      svg.style.width = vb.width + "px";
+      svg.style.height = vb.height + "px";
+    }
+  }
   async function renderDiagram(doFit) {
     try {
       const { svg, bindFunctions } = await mermaid.render("full" + (seq++), D.src);
       stage.innerHTML = svg;
+      pinSvgSize();
       if (bindFunctions) bindFunctions(stage);
       if (doFit) requestAnimationFrame(fit);
     } catch (e) {
@@ -283,6 +330,20 @@ def pretty_title(stem: str) -> str:
     return stem.replace("-", " ").replace("_", " ").strip() or stem
 
 
+def diagram_title(path: Path, text: str) -> str:
+    """Display title: a `%% title:` comment or YAML-frontmatter `title:` (so the
+    label can keep diacritics the ASCII filename drops), else the de-slugged name."""
+    m = re.search(r"(?mi)^[ \t]*%%[ \t]*title:[ \t]*(.+?)[ \t]*$", text)
+    if m:
+        return m.group(1).strip()
+    fm = re.match(r"^\s*---\s*\n(.*?)\n---\s*\n", text, re.S)
+    if fm:
+        tm = re.search(r"(?mi)^[ \t]*title:[ \t]*(.+?)[ \t]*$", fm.group(1))
+        if tm:
+            return tm.group(1).strip().strip("\"'")
+    return pretty_title(path.stem)
+
+
 def list_diagrams(source: Path) -> list[Path]:
     """All *.mmd in source, newest first (mtime desc, name desc as tiebreak)."""
     if not source.is_dir():
@@ -307,9 +368,10 @@ def render_index(source: Path, title: str) -> str:
     else:
         items, diagrams = [], []
         for n, p in enumerate(files, 1):
-            t = pretty_title(p.stem)
+            text = p.read_text(encoding="utf-8")
+            t = diagram_title(p, text)
             items.append(f'<li><span class="ord">{n}</span>{html.escape(t)}</li>')
-            diagrams.append({"title": t, "src": p.read_text(encoding="utf-8").strip(), "name": p.name})
+            diagrams.append({"title": t, "src": text.strip(), "name": p.name})
         count = "{} diagram{} - newest first".format(len(files), "" if len(files) == 1 else "s")
         data = _json_embed(diagrams)
         body = (
@@ -335,10 +397,8 @@ def render_index(source: Path, title: str) -> str:
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         f'<title>{esc_title}</title><style>{PAGE_CSS}</style>{NOFLASH}</head><body>'
-        '<nav class="top"><a href="/">view-mermaid</a>'
-        f'<span class="crumb">{html.escape(str(source))}</span>'
-        '<button id="themebtn" class="themebtn" title="Toggle light / dark"></button></nav>'
-        f'<main><h1>{esc_title}</h1><p class="count">{html.escape(count)}</p>{body}</main>'
+        f'<nav class="top"><a href="/" class="brand">{esc_title}</a>{SWITCH_HTML}</nav>'
+        f'<main><p class="count">{html.escape(count)}</p>{body}</main>'
         '<script src="/assets/mermaid.min.js"></script>'
         f'<script>const MM = {data};</script>'
         f'<script>{THEME_JS}</script>'
@@ -357,8 +417,9 @@ def render_full(source: Path, name: str) -> tuple[int, str]:
             f'{html.escape(base)}</div>'
         )
         return 404, page
-    t = pretty_title(f.stem)
-    data = _json_embed({"title": t, "src": f.read_text(encoding="utf-8").strip()})
+    text = f.read_text(encoding="utf-8")
+    t = diagram_title(f, text)
+    data = _json_embed({"title": t, "src": text.strip()})
     page = (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -367,7 +428,7 @@ def render_full(source: Path, name: str) -> tuple[int, str]:
         f'<span class="ttl">{html.escape(t)}</span>'
         '<span class="hint">scroll = zoom, drag = pan</span>'
         '<span class="fbtns">'
-        '<button id="themebtn" class="reset" title="Toggle light / dark"></button>'
+        f'{SWITCH_HTML}'
         '<button data-z="out" title="Zoom out">&minus;</button>'
         '<button data-z="reset" class="reset" title="Fit (press 0)">Fit</button>'
         '<button data-z="in" title="Zoom in">+</button>'
