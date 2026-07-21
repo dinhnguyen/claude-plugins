@@ -36,6 +36,12 @@ Address CodeRabbit (or similar bot) review comments on a GitHub PR end-to-end: f
 
 Requires `gh` CLI. See [`plugins/rabbit-pr/skills/rabbit-pr/SKILL.md`](plugins/rabbit-pr/skills/rabbit-pr/SKILL.md).
 
+### diffsense
+
+Structured, severity-tagged code review of a local git diff or a GitHub PR. Produces an end-user Summary, a top-level `Actionable comments posted: N` count with a combined AI-agent fix prompt plus walkthrough, and inline findings tagged two-dimensionally by issue type (Functional Correctness, Security & Privacy, Data Integrity & Integration, Maintainability, Test Coverage) and severity (Minor/Major/Nitpick) - each with a Proposed fix, a committable suggestion patch, and a per-finding AI-agent prompt. Report-only by default (prints in the terminal, never edits code); posting to a PR and the confirm-on-fix resolve loop are opt-in.
+
+Requires `git` (and `gh` CLI for PR mode). See [`plugins/diffsense/skills/diffsense/SKILL.md`](plugins/diffsense/skills/diffsense/SKILL.md).
+
 ### darkfin-slides
 
 Build dark fintech / blockchain PowerPoint decks from 29 slate-palette HTML slide templates (title, problem, KPI grids, pricing, roadmap, scoring tiers, horizontal + 3 vertical timeline variants, and more), converted to `.pptx` via Playwright + PptxGenJS. Bundles cyan icon PNGs, gradient step-number PNGs, and pre-rendered glow backgrounds. Default palette is slate; custom palettes via the bundled asset scripts.

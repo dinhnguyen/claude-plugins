@@ -1,0 +1,11 @@
+{
+  "name": "diffsense",
+  "description": "Structured, severity-tagged code review of a local git diff or a GitHub PR. Produces an end-user Summary, a top-level \"Actionable comments posted\" count with a combined AI-agent fix prompt + walkthrough, and inline findings tagged two-dimensionally by issue type (Functional Correctness, Security & Privacy, Data Integrity & Integration, Maintainability, Test Coverage) and severity (Minor/Major/Nitpick), each with a Proposed fix, a committable suggestion patch, and a per-finding AI-agent prompt. Report-only by default (prints in terminal, never edits code); can optionally post to a PR and run the confirm-on-fix resolve loop.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Dinh Nguyen",
+    "email": "dinhnguyenngoc@hotmail.com"
+  },
+  "homepage": "https://github.com/dinhnguyen/claude-plugins/tree/main/plugins/diffsense",
+  "keywords": ["code-review", "diff", "pr", "self-review", "github", "gh-cli"]
+}

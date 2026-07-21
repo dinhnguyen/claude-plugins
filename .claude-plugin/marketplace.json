@@ -45,6 +45,18 @@
       "homepage": "https://github.com/dinhnguyen/claude-plugins/tree/main/plugins/rabbit-pr"
     },
     {
+      "name": "diffsense",
+      "description": "Structured, severity-tagged code review of a local git diff or a GitHub PR. Produces an end-user Summary, a top-level \"Actionable comments posted\" count with a combined AI-agent fix prompt + walkthrough, and inline findings tagged two-dimensionally by issue type (Functional Correctness, Security & Privacy, Data Integrity & Integration, Maintainability, Test Coverage) and severity (Minor/Major/Nitpick), each with a Proposed fix, committable suggestion patch, and per-finding AI-agent prompt. Report-only by default (terminal, never edits code); can optionally post to a PR and run the confirm-on-fix resolve loop.",
+      "version": "1.0.0",
+      "source": "./plugins/diffsense",
+      "category": "workflow",
+      "author": {
+        "name": "Dinh Nguyen",
+        "email": "dinhnguyenngoc@hotmail.com"
+      },
+      "homepage": "https://github.com/dinhnguyen/claude-plugins/tree/main/plugins/diffsense"
+    },
+    {
       "name": "darkfin-slides",
       "description": "Dark fintech/blockchain PowerPoint deck builder. 29 slate-palette HTML slide templates (title, problem, KPI, horizontal + 3 vertical timeline variants, pricing, roadmap, scoring tiers, etc.) converted to .pptx via Playwright + PptxGenJS. Bundles 39 cyan icon PNGs (FontAwesome via react-icons), 12 gradient step-number PNGs, and pre-rendered glow backgrounds. Default tone is slate (Tailwind-aligned); custom palettes supported via gen-assets/icons/numbers scripts + sed hex swap in workdir slides.",
       "version": "1.0.0",
