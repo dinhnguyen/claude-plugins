@@ -7,7 +7,7 @@ description: Structured inline code review of a local git diff or a GitHub PR. P
 
 Produce a structured, severity-tagged review of changed code. **Report only - do not edit, commit, or push code.** Default output is the terminal (a self-review before pushing). Posting to a GitHub PR is opt-in (see Posting).
 
-## 1. Get the diff
+## 1. Get the diff and the intent
 
 Resolve the target from the user's request:
 
@@ -15,19 +15,42 @@ Resolve the target from the user's request:
 - **Local, branch** ("review before push/PR"): `git diff $(git merge-base main HEAD)...HEAD`. Use the repo's default branch if not `main`.
 - **PR** ("review PR 123"): `gh pr diff <N>` (detect N via `gh pr list --head $(git branch --show-current) --json number --jq '.[0].number'` if not given); `gh pr view <N> --json files,title,body`.
 
-Read the full changed files with surrounding context - a diff line alone cannot confirm a bug. Read `CLAUDE.md`/`AGENTS.md` and a neighboring file to learn the repo's conventions before flagging style. For a large diff (>~30 files), review by dimension in parallel subagents, then merge.
+Also collect the **stated intent**: PR title/body, linked issue, commit messages, and any plan/spec doc the branch references. The review must answer "does the diff do what it claims" - a promised behavior missing from the code is a finding, same as a bug.
 
-## 2. Review across four dimensions
+Read the full changed files with surrounding context - a diff line alone cannot confirm a bug. Read `CLAUDE.md`/`AGENTS.md` and a neighboring file to learn the repo's conventions before flagging style.
 
-For every changed hunk look for: **Functional Correctness** (logic, off-by-one, null/undefined, unhandled async, races, error handling, edge cases) · **Security & Privacy** (injection, missing authz, secrets/PII in logs or URLs, unvalidated input) · **Data Integrity & Integration** (non-atomic multi-write / missing transaction, fail-open, cross-process cache staleness, contract breaks) · **Maintainability & Code Quality** (duplication, naming, dead code, needless complexity, deviations from the repo's own conventions) · **Test Coverage** (new branches / bug fixes with no test).
+## 2. Ground truth first
 
-## 3. Verify before reporting
+Before reasoning about the code, run the repo's cheap deterministic checks when available (typecheck, lint, unit tests - use the project's own commands). A failure is a seeded finding with guaranteed reproduction; a pass constrains speculation. Skip this when the user wants a quick pass or the commands are slow or absent.
+
+## 3. Map the blast radius
+
+The highest-value bugs live at call sites *outside* the diff. For every changed function, signature, type, or behavior:
+
+- Find its callers and importers - use a code-graph tool if the session has one (`callers_of`, impact-radius queries), else grep the symbol.
+- Re-read each call site against the new behavior: stale assumptions, callers missed by a rename/move, broken contracts.
+- `git log -L` / `git blame` the changed lines: a line last changed by a bug fix that this diff now reverts is a Major.
+- For security-relevant hunks (input handling, auth, queries, file paths, secrets): trace the data flow end to end - where the value comes from, every transformation, where it ends up.
+
+## 4. Review across five dimensions
+
+For every changed hunk look for: **Functional Correctness** (logic, off-by-one, null/undefined, unhandled async, races, error handling, edge cases) · **Security & Privacy** (injection, missing authz, secrets/PII in logs or URLs, unvalidated input) · **Data Integrity & Integration** (non-atomic multi-write / missing transaction, fail-open, cross-process cache staleness, contract breaks) · **Maintainability & Code Quality** (duplication, naming, dead code, needless complexity, deviations from the repo's own conventions) · **Test Coverage** (new branches / bug fixes with no test - for each changed function, look for the test that exercises it).
+
+## 5. Consistency sweep
+
+When the diff applies a pattern to some sites, grep for the sibling sites it missed - cache invalidation added to create/update but not delete/import, a guard added to one of three identical handlers. Check every new mutation/endpoint against the conventions the repo itself establishes (audit logging, cache purge, authorization, i18n, error shape - whatever CLAUDE.md and neighboring code do consistently). Also look for code the change *should* have touched but didn't: types, config, docs, tests still referencing the old name or behavior. Repeated instances of one issue are one finding with `Also applies to:` - never N copies.
+
+## 6. Verify before reporting
 
 Signal, not noise. For each candidate: re-read the surrounding code and construct the concrete failure (specific input/state -> wrong output/crash); if you cannot, it is not a Major. Confirm it is inside the diff (or the diff triggers it) - do not flag untouched pre-existing code. Drop speculative/taste-only items or downgrade to Nitpick. Prefer 3 verified findings over 15 shaky ones.
 
 The most common false positives to self-check before reporting: (a) claiming X is missing when X is already handled a few lines away or in a helper - read the whole function, not the hunk; (b) referencing a symbol/entity/type that does not exist in this codebase - verify every name you cite; (c) flagging code that is dead/unused after this very diff; (d) intentional behavior documented in CLAUDE.md, a comment, or an ADR.
 
-## 4. Produce the output
+**Never report**: pre-existing issues the diff does not touch, anything a linter/formatter configured in the repo already catches, style opinions with no repo convention behind them, "could be slow/insecure" with no concrete path, TODOs.
+
+For a large diff (>~30 files) or when the user asks for a thorough review, scale out: run the five dimensions as parallel finder subagents, then a **skeptic pass** - one verifier per candidate finding whose only job is to refute it against the current code (grep the allegedly-missing handling, confirm every cited symbol exists, re-derive the failure). Only findings that survive are reported. For normal diffs, a single self-skeptic re-read of each finding suffices.
+
+## 7. Produce the output
 
 Follow the exact structure in **[references/output-format.md](references/output-format.md)** - read it before writing the review. It defines:
 - the end-user **Summary** (New Features / Bug Fixes / Improvements / Tests / Documentation),
@@ -37,7 +60,7 @@ Follow the exact structure in **[references/output-format.md](references/output-
 
 Order findings Critical -> Major -> Minor -> Nitpick. Nitpicks go in the top-level comment under a `🧹 Nitpick comments (N)` section, not as inline findings, and do not count toward the actionable total. Close with what was reviewed and anything not verifiable from the diff. If nothing is actionable, say so plainly rather than inventing findings.
 
-## 5. Confirmation loop (re-review after a fix)
+## 8. Confirmation loop (re-review after a fix)
 
 When the user says they fixed something (or a new commit lands), re-review per section 5 of the format reference: diff current code against each finding's suggestion, prepend `✅ Addressed in commit <sha7>` (or `✅ Addressed in commits <sha7> to <sha7>` when the fix spans several commits) and resolve the ones now satisfied, keep the rest open with what is still missing, and report `addressed x · still-open y`. Repeat until clear or the user stops.
 
@@ -52,6 +75,6 @@ Note before posting: if this repo already runs an automated review bot on PRs, p
 
 ## Guardrails
 
-- Report-only: never Edit/Write/commit/push code as part of this skill. Posting review comments (opt-in) is allowed; changing source is not.
+- Report-only: never Edit/Write/commit/push code as part of this skill. Posting review comments (opt-in) is allowed; changing source is not. Running the repo's own check commands (typecheck/lint/tests) is allowed - they read, not write.
 - Do not restate the whole diff; only the findings.
 - Respect the project's conventions over personal preference.
