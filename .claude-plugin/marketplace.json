@@ -11,7 +11,7 @@
     {
       "name": "brainstorm-preview",
       "description": "Serve docs/superpowers/{specs,plans}/*.md as styled HTML on a Tailscale-reachable HTTP server so spec/plan drafts can be reviewed from any device. Renders Markdown plus client-side Mermaid + Graphviz diagrams. Auto-invokes right after superpowers:brainstorming or superpowers:writing-plans writes a doc, highlighting the freshly-written file.",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "source": "./plugins/brainstorm-preview",
       "category": "workflow",
       "author": {
@@ -47,7 +47,7 @@
     {
       "name": "diffsense",
       "description": "Structured, severity-tagged code review of a local git diff or a GitHub PR. Produces an end-user Summary, a top-level \"Actionable comments posted\" count with a combined AI-agent fix prompt + walkthrough, and inline findings tagged two-dimensionally by issue type (Functional Correctness, Security & Privacy, Data Integrity & Integration, Maintainability, Test Coverage) and severity (Minor/Major/Nitpick), each with a Proposed fix, committable suggestion patch, and per-finding AI-agent prompt. Report-only by default (terminal, never edits code); can optionally post to a PR and run the confirm-on-fix resolve loop.",
-      "version": "1.0.0",
+      "version": "1.2.0",
       "source": "./plugins/diffsense",
       "category": "workflow",
       "author": {
@@ -70,8 +70,8 @@
     },
     {
       "name": "view-mermaid",
-      "description": "View Mermaid diagrams from the current conversation in a browser. Reads each chat ```mermaid block, writes it to a .mmd file, and serves them rendered on a Tailscale-reachable HTTP server with bundled mermaid.js (fully offline). The page lists all diagrams (newest first), renders the newest by default, has light/dark toggle, copyable source, and per-diagram fullscreen with zoom + pan. The server auto-stops ~3 min after the last tab closes. Trigger with /view-mermaid.",
-      "version": "1.2.0",
+      "description": "View Mermaid diagrams from the current conversation in a browser. Reads each chat ```mermaid block, writes it to a .mmd file, and serves them rendered on a Tailscale-reachable HTTP server with bundled Pele (fully offline). The page lists all diagrams (newest first), renders the newest by default, has light/dark toggle, copyable source, and per-diagram fullscreen with zoom + pan. The server auto-stops ~3 min after the last tab closes. Trigger with /view-mermaid.",
+      "version": "1.3.0",
       "source": "./plugins/view-mermaid",
       "category": "workflow",
       "author": {

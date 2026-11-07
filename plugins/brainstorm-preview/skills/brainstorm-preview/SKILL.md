@@ -20,6 +20,13 @@ Do NOT use this skill when the user wants to:
 - Publish docs as a static site or to a public host.
 - Edit docs (just open them in the editor).
 
+## Server location
+
+Resolve `SKILL_DIR` from this skill's base directory (the directory containing
+this `SKILL.md`, provided when the skill is loaded). The server is
+`$SKILL_DIR/scripts/serve.py`; do not assume a username or a fixed installation
+path. Plugin installs may use a versioned cache.
+
 ## Auto-trigger via PostToolUse hook (recommended)
 
 The skill description hints at auto-invocation after brainstorming/writing-plans
@@ -29,9 +36,14 @@ skill on its own. Make it deterministic with a `PostToolUse` hook instead.
 
 `~/.claude/hooks/brainstorm-preview-trigger.sh`:
 
+When creating this user-level hook, replace the `SKILL_DIR` placeholder below with
+the resolved skill base directory. It is not provided automatically to a standalone
+hook. If the plugin is updated or relocated, refresh that path in the hook.
+
 ```bash
 #!/usr/bin/env bash
 set -e
+SKILL_DIR="/absolute/path/to/this/skill"
 INPUT=$(cat)
 TOOL=$(printf '%s' "$INPUT" | jq -r '.tool_name // empty')
 FP=$(printf '%s' "$INPUT" | jq -r '.tool_input.file_path // empty')
@@ -62,7 +74,7 @@ fi
 PORT=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); p=s.getsockname()[1]; s.close(); print(p)")
 
 nohup uv run \
-  ~/.claude/skills/brainstorm-preview/scripts/serve.py \
+  "$SKILL_DIR/scripts/serve.py" \
   --docs-root "$ROOT" --port "$PORT" --latest \
   --idle-timeout 180 --state-file "$STATE_FILE" --log-file "$LOG" \
   >"$LOG" 2>&1 &
@@ -79,7 +91,7 @@ printf 'PREVIEW_PID=%s\nPREVIEW_PORT=%s\nPREVIEW_ROOT=%s\n' \
 "PostToolUse": [
   { "matcher": "Write|Edit|MultiEdit",
     "hooks": [{ "type": "command",
-                "command": "/Users/<you>/.claude/hooks/brainstorm-preview-trigger.sh" }] }
+                "command": "bash \"$HOME/.claude/hooks/brainstorm-preview-trigger.sh\"" }] }
 ]
 ```
 
@@ -112,7 +124,8 @@ server for that project root is already running — avoids restart churn.
 
    ```bash
    PORT=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); p=s.getsockname()[1]; s.close(); print(p)")
-   uv run /Users/dinhnguyen/.claude/skills/brainstorm-preview/scripts/serve.py \
+   SKILL_DIR="/absolute/path/to/this/skill"
+   uv run "$SKILL_DIR/scripts/serve.py" \
      --docs-root "$PWD" --port "$PORT" --idle-timeout 180 [--latest | --open <docs/relpath>]
    ```
 
@@ -177,7 +190,8 @@ If `uv` is not on PATH, run with the system Python after installing the two deps
 
 ```bash
 pip install markdown pygments
-python3 /Users/dinhnguyen/.claude/skills/brainstorm-preview/scripts/serve.py --docs-root "$PWD"
+SKILL_DIR="/absolute/path/to/this/skill"
+python3 "$SKILL_DIR/scripts/serve.py" --docs-root "$PWD"
 ```
 
 ## Troubleshooting

@@ -1,6 +1,6 @@
 ---
 name: view-mermaid
-description: View Mermaid diagrams from the current Claude conversation in a browser. The mermaid lives in the chat as a ```mermaid code block (text), not as a file - this skill reads each block out of the conversation, writes it to a .mmd file, and serves them rendered on a local HTTP server (bundled mermaid.js, fully offline) bound to 0.0.0.0, printing local + Tailscale URLs so the diagrams open on this machine or another device on the tailnet. The page lists every diagram (newest first), renders the newest by default, lets you pick any from the list, copy its source, and open one fullscreen in a new tab with zoom + pan. Use when the user types /view-mermaid, or asks to view / open / render a mermaid chart or diagram in the browser, see a diagram bigger or fullscreen, or says "xem mermaid", "mở sơ đồ trên trình duyệt", "xem biểu đồ to hơn", "render cái diagram này". After the first /view-mermaid in a conversation, also treat a later bare "xem" / "view" / "render nốt" as a request to append the newest diagram to the same running viewer and refresh - without retyping /view-mermaid.
+description: View Mermaid diagrams from the current Claude conversation in a browser. The mermaid lives in the chat as a ```mermaid code block (text), not as a file - this skill reads each block out of the conversation, writes it to a .mmd file, and serves them rendered on a local HTTP server (bundled Pele, fully offline) bound to 0.0.0.0, printing local + Tailscale URLs so the diagrams open on this machine or another device on the tailnet. The page lists every diagram (newest first), renders the newest by default, lets you pick any from the list, copy its source, and open one fullscreen in a new tab with zoom + pan. Use when the user types /view-mermaid, or asks to view / open / render a mermaid chart or diagram in the browser, see a diagram bigger or fullscreen, or says "xem mermaid", "mở sơ đồ trên trình duyệt", "xem biểu đồ to hơn", "render cái diagram này". After the first /view-mermaid in a conversation, also treat a later bare "xem" / "view" / "render nốt" as a request to append the newest diagram to the same running viewer and refresh - without retyping /view-mermaid.
 ---
 
 # View Mermaid
@@ -23,14 +23,15 @@ by default. If the user clearly wants only one specific diagram, write just that
 
 ## Server location
 
-The server script is `scripts/serve.py` in this skill, normally installed at:
+The server script is `scripts/serve.py`, relative to this skill's base directory
+(the directory containing this `SKILL.md`, provided when the skill is loaded).
+Resolve that directory to an absolute path and use it as `SKILL_DIR` below. Do not
+assume a username or installation path: plugin installs may live in a versioned
+cache rather than `~/.claude/skills/`.
 
-```
-/Users/dinhnguyen/.claude/skills/view-mermaid/scripts/serve.py
-```
-
-Pure stdlib `python3`, no dependencies, no `uv`. `mermaid.min.js` is bundled in
-`assets/` and served by the script itself, so diagrams render with no internet.
+Pure stdlib `python3`, no dependencies, no `uv`. Pele 1.13.0 (`pele.global.js`)
+is bundled in `assets/` with its MIT license and served by the script itself, so
+diagrams render with no internet. No Node.js or npm is needed to run the viewer.
 
 ## Workflow
 
@@ -69,7 +70,8 @@ browser refresh is enough); otherwise it starts one on a free port:
 
 ```bash
 WORK=/abs/path/chosen/once
-SERVE="$HOME/.claude/skills/view-mermaid/scripts/serve.py"
+SKILL_DIR=/absolute/path/to/this/skill
+SERVE="$SKILL_DIR/scripts/serve.py"
 H=$(printf %s "$WORK" | md5)
 STATE="/tmp/view-mermaid-$H.state"; LOG="/tmp/view-mermaid-$H.log"
 
@@ -164,7 +166,7 @@ still needs an explicit `/view-mermaid`.
 | `--source-dir` | (required) | Directory of `*.mmd` files. |
 | `--port` | `0` | `0` picks a free port; the script prints it. |
 | `--bind` | `0.0.0.0` | Use `127.0.0.1` to keep it local-only. |
-| `--assets-dir` | `../assets` | Where `mermaid.min.js` lives. |
+| `--assets-dir` | `../assets` | Where `pele.global.js` lives. |
 | `--title` | `Mermaid diagrams` | Page heading. |
 | `--idle-timeout` | `180` | Auto-stop after N seconds with no open tab (`0` = never). |
 | `--state-file` | none | Removed on shutdown (keeps reuse state clean). |
@@ -172,11 +174,14 @@ still needs an explicit `/view-mermaid`.
 
 ## Troubleshooting
 
-- **A diagram shows "[render failed]"**: the mermaid source has a syntax error.
-  Open the Source tab to inspect it; fix the `.mmd` file and refresh.
+- **A diagram shows "[render failed]"**: inspect the error and source for invalid
+  syntax or features unsupported by Pele; fix the `.mmd` file and refresh.
+- **A diagram looks different from Mermaid.js**: Pele uses its own layout and CSS
+  theming; Mermaid themes and HTML labels do not carry over. Keep labels as text;
+  line breaks, bold, and italic are supported.
 - **Tailscale URL missing**: the daemon isn't running. `tailscale status` to check;
   the URL only appears when `tailscale ip -4` returns an address.
-- **Diagrams blank**: confirm `assets/mermaid.min.js` exists next to the script
-  (`/assets/mermaid.min.js` should return 200). It is required for offline render.
+- **Diagrams blank**: confirm `assets/pele.global.js` exists next to the script
+  (`/assets/pele.global.js` should return 200). It is required for offline render.
 - **Port already in use**: the script picks a free port itself; if you passed an
   explicit `--port`, drop it or choose another.

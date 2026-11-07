@@ -2,6 +2,8 @@
 
 Personal Claude Code plugin marketplace.
 
+See [Changelog](CHANGELOG.md) for notable updates.
+
 ## Install the marketplace
 
 ```text
@@ -50,7 +52,7 @@ See [`plugins/darkfin-slides/skills/darkfin-slides/SKILL.md`](plugins/darkfin-sl
 
 ### view-mermaid
 
-View Mermaid diagrams from the current Claude conversation in a browser. Reads each Mermaid code block in the chat, writes it to a `.mmd` file, and serves them rendered on a Tailscale-reachable HTTP server with bundled `mermaid.js` (fully offline, no CDN). The page lists every diagram (newest first), renders the newest by default, and adds a light/dark toggle, copyable source, and per-diagram fullscreen with zoom + pan. The server auto-stops ~3 minutes after the last browser tab closes. Trigger with `/view-mermaid`.
+View Mermaid diagrams from the current Claude conversation in a browser. Reads each Mermaid code block in the chat, writes it to a `.mmd` file, and serves them rendered on a Tailscale-reachable HTTP server with bundled Pele 1.13.0 (fully offline, no CDN). The page lists every diagram (newest first), renders the newest by default, and adds a light/dark toggle, copyable source, and per-diagram fullscreen with zoom + pan. The server auto-stops ~3 minutes after the last browser tab closes. Trigger with `/view-mermaid`.
 
 Requires `python3` (standard library only). See [`plugins/view-mermaid/skills/view-mermaid/SKILL.md`](plugins/view-mermaid/skills/view-mermaid/SKILL.md).
 

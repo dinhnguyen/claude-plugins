@@ -8,8 +8,8 @@ to open the diagram fullscreen in a new tab. Fullscreen (`/full?name=<file>`)
 shows a single diagram with wheel-zoom and drag-pan.
 
 The list is rebuilt per request, so adding/editing .mmd files and refreshing is
-enough — no restart. Mermaid is served from a bundled mermaid.min.js on this same
-server, so it renders fully offline (no CDN). Binds to 0.0.0.0 so peers on the
+enough — no restart. Pele 1.13.0 renders Mermaid syntax using the bundled
+pele.global.js, fully offline (no CDN). Binds to 0.0.0.0 so peers on the
 same Tailscale tailnet can reach it.
 
 Usage:
@@ -48,6 +48,11 @@ ROOT_VARS = (
     "@media (prefers-color-scheme: dark) { :root:not([data-theme]) {" + DARK_VARS + "} }\n"
     ':root[data-theme="dark"] {' + DARK_VARS + "}\n"
 ) + """
+:root {
+  --pele-bg: var(--card); --pele-fg: var(--fg); --pele-muted: var(--muted);
+  --pele-line: var(--fg); --pele-surface: var(--code-bg); --pele-surface-alt: var(--row-hover);
+  --pele-border: var(--border); --pele-accent: var(--accent);
+}
 .theme-switch { background: none; border: 0; padding: 0; cursor: pointer; line-height: 0; }
 .theme-switch .track { position: relative; display: block; width: 46px; height: 26px; border-radius: 999px; background: var(--muted); transition: background .2s; }
 .theme-switch.is-dark .track { background: var(--accent); }
@@ -83,16 +88,14 @@ SWITCH_HTML = (
     '</span></span></button>'
 )
 
-# Shared theme helpers + toggle wiring. Both pages include this, then pass their
-# own re-render callback to vmInitTheme so diagrams recolor on toggle.
+# Pele SVGs inherit the page's CSS variables, including explicit theme overrides.
 THEME_JS = """
 function vmIsDark() {
   const t = document.documentElement.getAttribute("data-theme");
   if (t) return t === "dark";
   return matchMedia("(prefers-color-scheme: dark)").matches;
 }
-function vmMermaidTheme() { return vmIsDark() ? "dark" : "default"; }
-function vmInitTheme(onChange) {
+function vmInitTheme() {
   const btn = document.getElementById("themebtn");
   function reflect() {
     if (!btn) return;
@@ -106,7 +109,6 @@ function vmInitTheme(onChange) {
     document.documentElement.setAttribute("data-theme", next);
     try { localStorage.setItem("vm-theme", next); } catch (e) {}
     reflect();
-    if (onChange) onChange();
   });
 }
 """
@@ -182,7 +184,6 @@ PAGE_SCRIPT = """
   const tabs = [...document.querySelectorAll(".tab")];
   const panes = { diagram: document.getElementById("pane-diagram"), source: document.getElementById("pane-source") };
   let current = 0, seq = 0;
-  mermaid.initialize({ startOnLoad: false, theme: vmMermaidTheme() });
   function setTab(name) {
     tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === name));
     Object.keys(panes).forEach(k => { panes[k].hidden = k !== name; });
@@ -190,7 +191,7 @@ PAGE_SCRIPT = """
     copyBtn.hidden = name !== "source";
   }
   tabs.forEach(t => t.addEventListener("click", () => setTab(t.dataset.tab)));
-  async function show(i) {
+  function show(i) {
     if (!MM.length) return;
     current = i;
     [...list.children].forEach((li, idx) => li.classList.toggle("active", idx === i));
@@ -199,9 +200,10 @@ PAGE_SCRIPT = """
     src.textContent = d.src;
     out.innerHTML = "";
     try {
-      const { svg, bindFunctions } = await mermaid.render("mmg" + (seq++), d.src);
+      const { svg } = pele.render(d.src, {
+        idPrefix: "mmg" + (seq++), fontFamily: getComputedStyle(out).fontFamily,
+      });
       out.innerHTML = svg;
-      if (bindFunctions) bindFunctions(out);
     } catch (e) {
       const div = document.createElement("div");
       div.className = "err";
@@ -227,7 +229,7 @@ PAGE_SCRIPT = """
   [...list.children].forEach((li, idx) => li.addEventListener("click", () => show(idx)));
   setTab("diagram");
   if (MM.length) show(0);
-  vmInitTheme(() => { mermaid.initialize({ startOnLoad: false, theme: vmMermaidTheme() }); if (MM.length) show(current); });
+  vmInitTheme();
   const ping = () => { fetch("/heartbeat", { cache: "no-store" }).catch(() => {}); };
   ping();
   setInterval(ping, 30000);
@@ -237,7 +239,6 @@ PAGE_SCRIPT = """
 
 FULL_SCRIPT = """
 (function () {
-  mermaid.initialize({ startOnLoad: false, theme: vmMermaidTheme() });
   const vp = document.getElementById("viewport");
   const stage = document.getElementById("stage");
   let scale = 1, tx = 0, ty = 0;
@@ -283,29 +284,13 @@ FULL_SCRIPT = """
   }));
   window.addEventListener("keydown", e => { if (e.key === "0") fit(); });
   window.addEventListener("resize", fit);
-  let seq = 0;
-  function pinSvgSize() {
-    // mermaid renders with width:100% + max-width (useMaxWidth); inside an
-    // auto-width absolute stage that size is ambiguous. Pin the svg to its
-    // viewBox px so fit()/zoom math is exact.
-    const svg = stage.querySelector("svg");
-    if (!svg) return;
-    const vb = svg.viewBox && svg.viewBox.baseVal;
-    if (vb && vb.width && vb.height) {
-      svg.removeAttribute("width");
-      svg.removeAttribute("height");
-      svg.style.maxWidth = "none";
-      svg.style.width = vb.width + "px";
-      svg.style.height = vb.height + "px";
-    }
-  }
-  async function renderDiagram(doFit) {
+  function renderDiagram() {
     try {
-      const { svg, bindFunctions } = await mermaid.render("full" + (seq++), D.src);
+      const { svg } = pele.render(D.src, {
+        idPrefix: "full", responsive: false, fontFamily: getComputedStyle(stage).fontFamily,
+      });
       stage.innerHTML = svg;
-      pinSvgSize();
-      if (bindFunctions) bindFunctions(stage);
-      if (doFit) requestAnimationFrame(fit);
+      requestAnimationFrame(fit);
     } catch (e) {
       const div = document.createElement("div");
       div.className = "err";
@@ -314,8 +299,8 @@ FULL_SCRIPT = """
       stage.appendChild(div);
     }
   }
-  renderDiagram(true);
-  vmInitTheme(() => { mermaid.initialize({ startOnLoad: false, theme: vmMermaidTheme() }); renderDiagram(false); });
+  renderDiagram();
+  vmInitTheme();
   const ping = () => { fetch("/heartbeat", { cache: "no-store" }).catch(() => {}); };
   ping();
   setInterval(ping, 30000);
@@ -399,7 +384,7 @@ def render_index(source: Path, title: str) -> str:
         f'<title>{esc_title}</title><style>{PAGE_CSS}</style>{NOFLASH}</head><body>'
         f'<nav class="top"><a href="/" class="brand">{esc_title}</a>{SWITCH_HTML}</nav>'
         f'<main><p class="count">{html.escape(count)}</p>{body}</main>'
-        '<script src="/assets/mermaid.min.js"></script>'
+        '<script src="/assets/pele.global.js"></script>'
         f'<script>const MM = {data};</script>'
         f'<script>{THEME_JS}</script>'
         f'<script>{PAGE_SCRIPT}</script>'
@@ -435,7 +420,7 @@ def render_full(source: Path, name: str) -> tuple[int, str]:
         '</span>'
         '</div>'
         '<div id="viewport"><div id="stage"></div></div>'
-        '<script src="/assets/mermaid.min.js"></script>'
+        '<script src="/assets/pele.global.js"></script>'
         f'<script>const D = {data};</script>'
         f'<script>{THEME_JS}</script>'
         f'<script>{FULL_SCRIPT}</script>'
@@ -475,10 +460,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             name = (parse_qs(parsed.query).get("name") or [""])[0]
             code, page = render_full(self.source, name)
             return self._send(code, page.encode("utf-8"), "text/html; charset=utf-8")
-        if path == "/assets/mermaid.min.js":
-            f = self.assets / "mermaid.min.js"
+        if path == "/assets/pele.global.js":
+            f = self.assets / "pele.global.js"
             if not f.is_file():
-                return self._send(404, b"mermaid.min.js not bundled", "text/plain; charset=utf-8")
+                return self._send(404, b"pele.global.js not bundled", "text/plain; charset=utf-8")
             return self._send(200, f.read_bytes(), "application/javascript", cache="max-age=86400")
         if path == "/healthz":
             return self._send(200, b"ok\n", "text/plain; charset=utf-8")
@@ -519,7 +504,7 @@ def main() -> int:
     p.add_argument(
         "--assets-dir",
         default=str(here.parent / "assets"),
-        help="Directory holding mermaid.min.js (default: ../assets).",
+        help="Directory holding pele.global.js (default: ../assets).",
     )
     p.add_argument("--title", default="Mermaid diagrams", help="Page title.")
     p.add_argument(
@@ -534,8 +519,8 @@ def main() -> int:
 
     source = Path(args.source_dir).resolve()
     assets = Path(args.assets_dir).resolve()
-    if not (assets / "mermaid.min.js").is_file():
-        sys.stderr.write(f"warn: {assets}/mermaid.min.js missing; diagrams will not render.\n")
+    if not (assets / "pele.global.js").is_file():
+        sys.stderr.write(f"warn: {assets}/pele.global.js missing; diagrams will not render.\n")
 
     activity = [time.monotonic()]
     handler = partial(Handler, source=source, assets=assets, title=args.title, activity=activity)

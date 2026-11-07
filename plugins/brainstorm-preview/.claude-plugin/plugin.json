@@ -1,7 +1,7 @@
 {
   "name": "brainstorm-preview",
   "description": "Preview docs/superpowers/{specs,plans}/*.md as styled HTML on a Tailscale-reachable HTTP server. Auto-invokes after superpowers:brainstorming / superpowers:writing-plans so the freshly-written doc gets a one-click review URL on local + tailnet.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "Dinh Nguyen",
     "email": "dinhnguyenngoc@hotmail.com"
